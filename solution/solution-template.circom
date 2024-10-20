@@ -23,20 +23,21 @@ template SignMessage (n) {
   signature <== signatureHasher.out;
 
   // Membership check
+  signal hashes[n-1]
   component proofHashers[n - 1];
   proofHashers[0] = Poseidon(2);
   proofHashers[0].inputs[0] <== myIdentity;
   proofHashers[0].inputs[1] <== merkleProof[0];
-  signal currentHash <== proofHashers[0].out;
+  hashes[0] <== proofHashers[0].out;
 
   for (var i = 1; i < n - 1; i++) {
     proofHashers[i] = Poseidon(2);
-    proofHashers[i].inputs[0] <== currentHash;
+    proofHashers[i].inputs[0] <== hashes[i-1];
     proofHashers[i].inputs[1] <== merkleProof[i];
-    currentHash <== proofHashers[i].out;
+    hashes[i] <== proofHashers[i].out;
   }
 
-  signal hashDiff <== currentHash - merkleRoot;
+  signal hashDiff <== hashes[n - 2] - merkleRoot;
   hashDiff === 0;
 }
 
