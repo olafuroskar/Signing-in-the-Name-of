@@ -5,3 +5,5 @@ target
 # Ignore generated circom files
 solution.circom
 reveal.circom
+
+debug.json
