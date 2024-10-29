@@ -1,14 +1,18 @@
+// Implementation from https://github.com/tornadocash/tornado-core/blob/master/circuits/merkleTree.circom
+// Modified to use Poseidon instead of MiMC
+pragma circom 2.0.0;
+
 include "circomlib/circuits/poseidon.circom";
 
-// Computes MiMC([left, right])
+// Computes Poseidon([left, right])
 template HashLeftRight() {
     signal input left;
     signal input right;
     signal output hash;
 
     component hasher = Poseidon(2);
-    hasher.ins[0] <== left;
-    hasher.ins[1] <== right;
+    hasher.inputs[0] <== left;
+    hasher.inputs[1] <== right;
     hash <== hasher.out;
 }
 
@@ -19,7 +23,7 @@ template DualMux() {
     signal input s;
     signal output out[2];
 
-    s * (1 - s) === 0
+    s * (1 - s) === 0;
     out[0] <== (in[1] - in[0])*s + in[0];
     out[1] <== (in[0] - in[1])*s + in[1];
 }

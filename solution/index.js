@@ -1,6 +1,11 @@
 const { buildPoseidon } = require("circomlibjs");
 const crypto = require("crypto");
 const fs = require("fs");
+const prompt = require("prompt-sync")();
+
+const CIRCOM_PRIME_FIELD = BigInt(
+  "21888242871839275222246405745257275088548364400416034343698204186575808495617",
+);
 
 // Helper function to convert a string to an array of Unicode code points (BigInt)
 function stringToBigInt(str) {
@@ -27,7 +32,8 @@ async function signUpClient(password) {
   const numericSecret = stringToBigInt(password);
 
   // Generate a random salt (as a BigInt) using Node's crypto module
-  const salt = BigInt("0x" + crypto.randomBytes(32).toString("hex"));
+  const salt =
+    BigInt("0x" + crypto.randomBytes(32).toString("hex")) % CIRCOM_PRIME_FIELD;
 
   // Append the salt to the inputs before hashing
   const inputsWithSalt = [numericSecret, salt];
@@ -71,39 +77,69 @@ async function generateMerkleTree(leaves) {
 }
 
 function generateProof(tree, leafIndex) {
-  let proof = [];
+  let elements = [];
+  let sides = [];
   let index = leafIndex;
 
   // Traverse each level and collect sibling hashes
   for (let i = 0; i < tree.length - 1; i++) {
     const level = tree[i];
-    const isRightNode = index % 2 !== 0;
-    const siblingIndex = isRightNode ? index - 1 : index + 1;
+    const isLeftNode = index % 2 !== 0;
+    const siblingIndex = isLeftNode ? index - 1 : index + 1;
 
     if (siblingIndex < level.length) {
-      proof.push(level[siblingIndex]); // Add sibling hash to the proof
+      elements.push(level[siblingIndex]); // Add sibling hash to the proof
+      sides.push(isLeftNode ? 1 : 0);
     }
 
     index = Math.floor(index / 2); // Move to the next level
   }
 
-  return proof;
+  return { elements, sides };
+}
+
+async function fileToBigIntInPrimeField(filePath) {
+  try {
+    // Read file content as binary data
+    const fileBuffer = fs.readFileSync(filePath);
+
+    // Create a SHA-256 hash of the binary data for a deterministic result
+    const hash = crypto.createHash("sha256").update(fileBuffer).digest();
+
+    // Convert hash to a BigInt
+    const bigIntFromHash =
+      BigInt(`0x${hash.toString("hex")}`) % CIRCOM_PRIME_FIELD;
+
+    return bigIntFromHash;
+  } catch (error) {
+    console.error("Error reading or processing file:", error);
+    throw error;
+  }
 }
 
 // Main function to handle command-line arguments and run the example
 (async () => {
-  // Get command-line arguments (ignoring the first two which are the path to Node.js and the script itself)
-  const args = process.argv.slice(2);
+  const password = prompt("Enter your password: ");
+  const numUsers = parseInt(
+    prompt("Enter the number of users in your group: "),
+    10,
+  );
 
-  if (args.length === 0) {
-    console.log("Please provide some input strings as arguments.");
-    process.exit(1);
+  // Generate random passwords for users in the group
+  const passwords = [];
+  const randomIndex = Math.floor(Math.random() * numUsers);
+  for (let i = 0; i < numUsers; i++) {
+    if (i === randomIndex) {
+      passwords.push(password);
+    } else {
+      passwords.push(crypto.randomBytes(16).toString("hex"));
+    }
   }
 
   const publicKeys = [];
   const salts = [];
   const pKsAndSalts = await Promise.all(
-    args.map(async (pk) => await signUpClient(pk)),
+    passwords.map(async (pk) => await signUpClient(pk)),
   );
 
   pKsAndSalts.forEach(({ publicKey, salt }) => {
@@ -112,22 +148,27 @@ function generateProof(tree, leafIndex) {
   });
 
   const { tree, merkleRoot } = await generateMerkleTree(publicKeys);
+  const { elements, sides } = generateProof(tree, randomIndex);
 
-  const proof = generateProof(tree, 0);
+  const filePath = prompt("Enter the file path to generate a bigint: ");
+  const fileBigInt = await fileToBigIntInPrimeField(filePath);
+
+  const bits = (arr) => arr.map((bi) => bi.toString());
 
   fs.writeFile(
     "input.json",
     JSON.stringify({
-      identity_secret: stringToBigInt(args[0]).toString(),
-      salt: salts[0].toString(),
-      merkleProof: proof.map((lvl) => lvl.toString()),
+      identity_secret: stringToBigInt(password).toString(),
+      salt: salts[randomIndex].toString(),
+      pathElements: bits(elements),
+      pathIndices: bits(sides),
       merkleRoot: merkleRoot.toString(),
-      message: 123456789,
+      message: fileBigInt.toString(),
     }),
     () => {},
   );
 
-  const bits = (arr) => arr.map((bi) => bi.toString());
+  console.log(`Run: just build_depth solution ${tree.length}`);
 
   fs.writeFile(
     "debug.json",
@@ -135,19 +176,10 @@ function generateProof(tree, leafIndex) {
       tree: tree.map((level) => level.map((node) => node.toString())),
       salts: bits(salts),
       merkleRoot: merkleRoot.toString(),
-      proof: bits(proof),
+      pathElements: bits(elements),
+      pathIndices: bits(sides),
       publicKeys: bits(publicKeys),
     }),
     () => {},
   );
-
-  console.log({ tree });
-  console.log({
-    publicKeys,
-    proverSalt: salts[0],
-    proverSk: args[0],
-    proof,
-    merkleRoot,
-    depth: tree.length,
-  });
 })();
