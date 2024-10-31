@@ -58,7 +58,16 @@ const {
           Object.entries(generateProof(tree, i)).map(([k, v]) => [k, bits(v)]),
         ),
       })),
-      files: [{ [fileBigInt.toString()]: { filePath } }],
+      files: [
+        { [fileBigInt.toString()]: { filePath } },
+        {
+          ["123456789"]: {
+            filePath: "unverifiable.pdf",
+            proof: {},
+            public: {},
+          },
+        },
+      ],
       merkleRoot,
       merkleDepth: tree.length,
     }),

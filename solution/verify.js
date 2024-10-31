@@ -6,70 +6,36 @@ const { stringToBigInt } = require("./utils");
 const fs = require("fs");
 
 (async () => {
-  const file = Object.entries(db.files[0])[0];
+  const files = Object.entries(db.files);
+
+  const fileMap = {};
+  files.forEach((fileObj, i) => {
+    const file = Object.entries(fileObj[1])[0];
+    console.log(`${i + 1}: ${file[1].filePath}`);
+    fileMap[i] = { key: fileObj[0], ...file[1] };
+  });
+  const fileNr = prompt("Enter the file number you want to verify: ");
+
+  const file = fileMap[fileNr - 1];
   if (!file) {
     console.log("No file in database");
     return;
   }
 
-  const filePath = file[1].filePath;
-  const fileKey = file[0];
+  const proof = file.proof;
+  const public = file.public;
 
-  const y = prompt(`Would you like to sign the file at ${filePath}? (Y/n)`, {
-    value: "Y",
+  fs.writeFile("target/proof.json", JSON.stringify(proof), () => {});
+  fs.writeFile("target/public.json", JSON.stringify(public), () => {});
+
+  const verifyProcess = spawn("just", ["verify_proof", "solution"]);
+
+  // Listen to output from shell command
+  verifyProcess.stdout.on("data", (data) => {
+    console.log(`Output: ${data}`);
   });
 
-  if (y.toUpperCase() !== "Y") {
-    console.log("Cancelled...");
-    return;
-  }
-  const username = prompt("Enter your username: ");
-  const password = prompt("Enter your password to verify signature: ");
-
-  const user = db.users.find((u) => u.username === username);
-
-  const isVerified = await verifyPasswordAndSalt(
-    password,
-    user.salt,
-    user.publicKey,
-  );
-
-  if (!isVerified) {
-    console.log("The username and password combination does not exist");
-    return;
-  }
-
-  const merkleRoot = db.merkleRoot;
-
-  fs.writeFile(
-    "input.json",
-    JSON.stringify({
-      identity_secret: stringToBigInt(password).toString(),
-      salt: user.salt,
-      pathElements: user.pathElements,
-      pathIndices: user.pathIndices,
-      merkleRoot,
-      message: fileKey,
-    }),
-    () => {
-      const proofProcess = spawn("just", ["generate_proof", "solution"]);
-
-      // Listen to output from shell command
-      proofProcess.stdout.on("data", (data) => {
-        console.log(`Output: ${data}`);
-      });
-
-      proofProcess.stderr.on("data", (data) => {
-        console.error(`Error: ${data}`);
-      });
-
-      proofProcess.on("close", (code) => {
-        if (code === 0) {
-          console.log("Proof generated successfully!");
-        } else {
-          console.error(`Proof generation process exited with code ${code}`);
-        }
-      });
-    },
-  );
+  verifyProcess.stderr.on("data", (data) => {
+    console.error(`Error: ${data}`);
+  });
 })();

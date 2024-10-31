@@ -80,7 +80,8 @@ function generateProof(tree, leafIndex) {
   for (let i = 0; i < tree.length - 1; i++) {
     const level = tree[i];
     const isLeftNode = index % 2 !== 0;
-    const siblingIndex = isLeftNode ? index - 1 : index + 1;
+    let siblingIndex = isLeftNode ? index - 1 : index + 1;
+    siblingIndex = tree[i].length <= siblingIndex ? index : siblingIndex; // If odd number, duplicate last node
 
     if (siblingIndex < level.length) {
       elements.push(level[siblingIndex]); // Add sibling hash to the proof

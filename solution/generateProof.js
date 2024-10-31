@@ -65,7 +65,33 @@ const fs = require("fs");
 
       proofProcess.on("close", (code) => {
         if (code === 0) {
-          console.log("Proof generated successfully!");
+          const proof = fs.readFileSync("target/proof.json", "utf8");
+          const public = fs.readFileSync("target/public.json", "utf8");
+          const newDb = {
+            ...db,
+            files: db.files.map((f) => {
+              if (Object.keys(f)[0] === fileKey) {
+                return {
+                  [fileKey]: {
+                    ...f[fileKey],
+                    proof: JSON.parse(proof),
+                    public: JSON.parse(public),
+                  },
+                };
+              }
+              return f;
+            }),
+          };
+          fs.writeFile("db.json", JSON.stringify(newDb), () => {
+            console.log("Proof generated successfully!");
+
+            fs.rm("target/proof.json", () => {
+              console.log("Deleted proof.json");
+            });
+            fs.rm("target/public.json", () => {
+              console.log("Deleted public.json");
+            });
+          });
         } else {
           console.error(`Proof generation process exited with code ${code}`);
         }
