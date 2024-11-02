@@ -38,9 +38,9 @@ const prompt = require("prompt-sync")();
            * Simulate getting entropy from multiple users.
            */
           let entropy = "";
-          const numEntropies = Math.max(5, db.users.length);
+          const numEntropies = Math.min(5, db.users.length);
           console.log(
-            `Simulate entropy from multiple users (max(5, ${numEntropies}))`,
+            `Simulate entropy from multiple users (min(5, ${numEntropies}))`,
           );
           for (let i = 0; i < numEntropies; i++) {
             entropy += prompt(`User #${i + 1} Enter a random text. (Entropy):`);
