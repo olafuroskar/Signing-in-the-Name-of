@@ -25,10 +25,25 @@ const fs = require("fs");
   const proof = file.proof;
   const public = file.public;
 
-  fs.writeFile("target/proof.json", JSON.stringify(proof), () => {});
-  fs.writeFile("target/public.json", JSON.stringify(public), () => {});
+  fs.writeFile("sign/target/proof.json", JSON.stringify(proof), () => {});
+  fs.writeFile("sign/target/public.json", JSON.stringify(public), () => {});
 
-  const verifyProcess = spawn("just", ["verify_proof", "solution"]);
+  const verifyProcess = spawn("just", [
+    "verify_proof",
+    "solution/sign",
+    "sign",
+  ]);
+
+  verifyProcess.on("close", (code) => {
+    if (code === 0) {
+      fs.rm("sign/target/proof.json", () => {
+        console.log("Deleted proof.json");
+      });
+      fs.rm("sign/target/public.json", () => {
+        console.log("Deleted public.json");
+      });
+    }
+  });
 
   // Listen to output from shell command
   verifyProcess.stdout.on("data", (data) => {

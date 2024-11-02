@@ -3,7 +3,9 @@ target
 *.ptau
 
 # Ignore generated circom files
+sign.circom
 solution.circom
-reveal.circom
-
+db.json
 debug.json
+input.json
+

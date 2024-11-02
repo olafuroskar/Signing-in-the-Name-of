@@ -3,48 +3,48 @@ prepare:
     ./scripts/prepare.sh
 
 # Build a circuit, output .r1cs and .wasm files
-build example:
-    ./scripts/build.sh {{example}}/{{example}}.circom
+build dir name:
+    ./scripts/build.sh {{dir}}/{{name}}.circom
 
 # Run a trusted setup (both phases), output proving and verification keys
-trusted_setup example:
-    ./scripts/trusted_setup.sh {{example}}/target/{{example}}.r1cs
+trusted_setup dir name:
+    ./scripts/trusted_setup.sh {{dir}}/target/{{name}}.r1cs
 
 # Run a trusted setup using pot12, phase 2 only, output proving and verification keys
-trusted_setup_phase2 example:
-    ./scripts/trusted_setup_phase2.sh ptau/pot12.ptau {{example}}/target/{{example}}.r1cs
+trusted_setup_phase2 dir name:
+    ./scripts/trusted_setup_phase2.sh ptau/pot12.ptau {{dir}}/target/{{name}}.r1cs
 
 # Generate a proof, output proof and public output files
-generate_proof example:
-    ./scripts/generate_proof.sh {{example}}/target/{{example}}_0001.zkey \
-        {{example}}/target/{{example}}_js/{{example}}.wasm \
-        {{example}}/input.json
+generate_proof dir name:
+    ./scripts/generate_proof.sh {{dir}}/target/{{name}}_0001.zkey \
+        {{dir}}/target/{{name}}_js/{{name}}.wasm \
+        {{dir}}/input.json
 
 # Verifies a proof, output true or false
-verify_proof example:
-    ./scripts/verify_proof.sh {{example}}/target/{{example}}_verification_key.json \
-        {{example}}/target/public.json \
-        {{example}}/target/proof.json
+verify_proof dir name:
+    ./scripts/verify_proof.sh {{dir}}/target/{{name}}_verification_key.json \
+        {{dir}}/target/public.json \
+        {{dir}}/target/proof.json
 
 generate_identity:
     ./scripts/generate_identity.sh
 
-set_depth example depth:
-    ./scripts/set_depth.sh {{example}}/{{example}} \
+set_depth dir name depth:
+    ./scripts/set_depth.sh {{dir}}/{{name}} \
     {{depth}}
 
 # Build a circuit, output .r1cs and .wasm files with certain merkle tree depth
-build_depth example depth:
-    ./scripts/build_depth.sh {{example}}/{{example}} \
+build_depth dir name depth:
+    ./scripts/build_depth.sh {{dir}}/{{name}} \
     {{depth}}
 
 # Run all steps for a specific example
-all example:
+all dir name:
     just prepare
-    just build {{example}}
-    just trusted_setup {{example}}
-    just trusted_setup_phase2 {{example}}
-    just generate_proof {{example}}
-    just verify_proof {{example}}
-    just set_depth {{example}} 8
-    just build_depth {{example}} 8
+    just build {{dir}} {{name}}
+    just trusted_setup {{dir}} {{name}}
+    just trusted_setup_phase2 {{dir}} {{name}}
+    just generate_proof {{dir}} {{name}}
+    just verify_proof {{dir}} {{name}}
+    just set_depth {{dir}} {{name}} 8
+    just build_depth {{dir}} {{name}} 8

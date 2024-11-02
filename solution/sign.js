@@ -42,17 +42,21 @@ const fs = require("fs");
   const merkleRoot = db.merkleRoot;
 
   fs.writeFile(
-    "input.json",
+    "sign/input.json",
     JSON.stringify({
       identity_secret: stringToBigInt(password).toString(),
       salt: user.salt,
       pathElements: user.pathElements,
       pathIndices: user.pathIndices,
       merkleRoot,
-      message: fileKey,
+      document: fileKey,
     }),
     () => {
-      const proofProcess = spawn("just", ["generate_proof", "solution"]);
+      const proofProcess = spawn("just", [
+        "generate_proof",
+        "solution/sign",
+        "sign",
+      ]);
 
       // Listen to output from shell command
       proofProcess.stdout.on("data", (data) => {
@@ -65,8 +69,8 @@ const fs = require("fs");
 
       proofProcess.on("close", (code) => {
         if (code === 0) {
-          const proof = fs.readFileSync("target/proof.json", "utf8");
-          const public = fs.readFileSync("target/public.json", "utf8");
+          const proof = fs.readFileSync("sign/target/proof.json", "utf8");
+          const public = fs.readFileSync("sign/target/public.json", "utf8");
           const newDb = {
             ...db,
             files: db.files.map((f) => {
@@ -85,10 +89,10 @@ const fs = require("fs");
           fs.writeFile("db.json", JSON.stringify(newDb), () => {
             console.log("Proof generated successfully!");
 
-            fs.rm("target/proof.json", () => {
+            fs.rm("sign/target/proof.json", () => {
               console.log("Deleted proof.json");
             });
-            fs.rm("target/public.json", () => {
+            fs.rm("sign/target/public.json", () => {
               console.log("Deleted public.json");
             });
           });
